@@ -6,7 +6,12 @@ library(zoo)
 
 # Data downloaded from https://covid.saude.gov.br/ on 29/07/2022
 # Using read_csv2 beacause the values are separated with ";"
-df_covid <- read_csv2("dados/HIST_PAINEL_COVIDBR_2020_Parte1_26jul2022.csv")
+# df_covid <- read_csv2("dados/HIST_PAINEL_COVIDBR_2020_Parte1_26jul2022.csv")
+# Reading data shared between multiple files
+df_covid <- list.files(path = "dados",
+           pattern = "HIST_PAINEL_COVIDBR*", full.names = TRUE) %>%
+  lapply(read_csv2) %>%
+  bind_rows
 
 # Population data downloaded from https://www.ibge.gov.br/cidades-e-estados on 31/07/2022
 # We needed to remove the first line from the file and the last one before
@@ -59,5 +64,9 @@ df_covid_filtered <- merge(df_populacao, df_uf_estado, by = "uf") %>%
   merge(df_covid_filtered, by = "estado") %>%
   mutate(percentual_casos_populacao = casos_novos / populacao_estimada_2021,
          casos_por_area = casos_novos / area_territorial_2021)
+
+
+df_covid_filtered %>%
+  filter(casos_novos < 0)
 
 write.csv(df_covid_filtered, "dados/covid_df.csv", row.names = FALSE)
