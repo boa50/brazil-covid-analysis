@@ -19,7 +19,7 @@ df_populacao <- clean_names(df_populacao)
 
 # Creating a new dataframe to do the mapping between data
 df_uf_estado <- data.frame(
-  uf = c("Acre","Alagoas","Amap&aacute","Amazonas","Bahia","Cear&aacute","Distrito Federal","Esp&iacute","Goi&aacute","Maranh&atilde","Mato Grosso","Mato Grosso do Sul","Minas Gerais","Par&aacute","Para&iacute","Paran&aacute","Pernambuco","Piau&iacute","Rio de Janeiro","Rio Grande do Norte","Rio Grande do Sul","Rond&ocirc","Roraima","Santa Catarina","S&atilde","Sergipe","Tocantins"),
+  uf = c("Acre","Alagoas","Amap&aacute;","Amazonas","Bahia","Cear&aacute;","Distrito Federal","Esp&iacute;rito Santo","Goi&aacute;s","Maranh&atilde;o","Mato Grosso","Mato Grosso do Sul","Minas Gerais","Par&aacute;","Para&iacute;ba","Paran&aacute;","Pernambuco","Piau&iacute;","Rio de Janeiro","Rio Grande do Norte","Rio Grande do Sul","Rond&ocirc;nia","Roraima","Santa Catarina","S&atilde;o Paulo","Sergipe","Tocantins"),
   estado = c("AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO")
 )
 
@@ -37,16 +37,27 @@ df_covid %>%
 df_covid_filtered <- df_covid %>%
   # Filtering of data distributed by city so we don't double the values
   filter(!is.na(estado) & is.na(codmun)) %>%
-  select(estado, data, casos_novos, obitos_novos) %>%
-  arrange(estado, data) %>%
-  group_by(estado) %>%
-  # Calculating the rolling mean from 07 and 14 days to check the differences
-  # Calculations based only on previous values as it would be unexpected
-  # to have always the future values
-  mutate(casos_media_07 = rollmean(casos_novos, k = 7, fill = 0, align = "right"),
-         casos_media_14 = rollmean(casos_novos, k = 14, fill = 0, align = "right"),
-         obitos_media_07 = rollmean(obitos_novos, k = 7, fill = 0, align = "right"),
-         obitos_media_14 = rollmean(obitos_novos, k = 14, fill = 0, align = "right")) %>%
-  ungroup()
+  select(estado, data, casos_novos, obitos_novos) 
+# %>%
+#   arrange(estado, data) %>%
+#   group_by(estado) %>%
+#   # Calculating the rolling mean from 07 and 14 days to check the differences
+#   # Calculations based only on previous values as it would be unexpected
+#   # to have always the future values
+#   mutate(casos_media_07 = rollmean(casos_novos, k = 7, fill = 0, align = "right"),
+#          casos_media_14 = rollmean(casos_novos, k = 14, fill = 0, align = "right"),
+#          obitos_media_07 = rollmean(obitos_novos, k = 7, fill = 0, align = "right"),
+#          obitos_media_14 = rollmean(obitos_novos, k = 14, fill = 0, align = "right")) %>%
+#   ungroup()
+
+df_covid_filtered <- merge(df_populacao, df_uf_estado, by = "uf") %>%
+  rename(
+    populacao_estimada_2021 = popula_ccedil_atilde_o_estimada_pessoas_2021,
+    area_territorial_2021 = aacute_rea_territorial_km_sup2_2021
+  ) %>%
+  select(estado, populacao_estimada_2021, area_territorial_2021) %>%
+  merge(df_covid_filtered, by = "estado") %>%
+  mutate(percentual_casos_populacao = casos_novos / populacao_estimada_2021,
+         casos_por_area = casos_novos / area_territorial_2021)
 
 write.csv(df_covid_filtered, "dados/covid_df.csv", row.names = FALSE)
